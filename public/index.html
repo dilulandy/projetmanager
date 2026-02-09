@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目与人员管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e6ed;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: #606266;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab:hover {
+            color: #409eff;
+        }
+
+        .tab.active {
+            color: #409eff;
+            border-bottom-color: #409eff;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            margin-bottom: 8px;
+            color: #303133;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            padding: 10px 12px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #409eff;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .multi-select {
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            padding: 8px;
+            min-height: 45px;
+        }
+
+        .multi-select-item {
+            display: inline-flex;
+            align-items: center;
+            background: #f0f9ff;
+            color: #409eff;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        .multi-select-item button {
+            background: none;
+            border: none;
+            color: #409eff;
+            margin-left: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .select-dropdown {
+            margin-top: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .select-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .select-option:hover {
+            background: #f5f7fa;
+        }
+
+        .select-option.selected {
+            background: #ecf5ff;
+            color: #409eff;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #409eff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #66b1ff;
+        }
+
+        .btn-secondary {
+            background: #e4e7ed;
+            color: #606266;
+        }
+
+        .btn-secondary:hover {
+            background: #d3d4d6;
+        }
+
+        .btn-danger {
+            background: #f56c6c;
+            color: white;
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .btn-danger:hover {
+            background: #f78989;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-executing {
+            background: #67c23a;
+            color: white;
+        }
+
+        .status-high {
+            background: #e6a23c;
+            color: white;
+        }
+
+        .status-low {
+            background: #909399;
+            color: white;
+        }
+
+        .projects-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .projects-table th,
+        .projects-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ebeef5;
+        }
+
+        .projects-table th {
+            background: #f5f7fa;
+            color: #606266;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .projects-table tr:hover {
+            background: #f5f7fa;
+        }
+
+        .gantt-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        .gantt-chart {
+            min-width: 1000px;
+        }
+
+        .gantt-header {
+            display: flex;
+            border-bottom: 2px solid #dcdfe6;
+            background: #f5f7fa;
+            padding: 10px 0;
+        }
+
+        .gantt-label {
+            width: 200px;
+            padding: 0 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .gantt-timeline {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        .gantt-month {
+            flex: 1;
+            text-align: center;
+            font-size: 13px;
+            border-left: 1px solid #e0e6ed;
+            padding: 5px;
+        }
+
+        .gantt-row {
+            display: flex;
+            border-bottom: 1px solid #ebeef5;
+            min-height: 50px;
+            align-items: center;
+        }
+
+        .gantt-row-label {
+            width: 200px;
+            padding: 12px;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .gantt-row-bars {
+            flex: 1;
+            position: relative;
+            height: 50px;
+        }
+
+        .gantt-bar {
+            position: absolute;
+            height: 30px;
+            border-radius: 4px;
+            top: 10px;
+            padding: 0 8px;
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .gantt-bar:hover {
+            opacity: 0.85;
+        }
+
+        .gantt-bar-executing {
+            background: #67c23a;
+        }
+
+        .gantt-bar-high {
+            background: #e6a23c;
+        }
+
+        .gantt-bar-low {
+            background: #909399;
+        }
+
+        .availability-section {
+            margin-top: 30px;
+        }
+
+        .date-filter {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .availability-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .person-card {
+            background: white;
+            border: 1px solid #e0e6ed;
+            border-radius: 6px;
+            padding: 16px;
+            transition: all 0.3s;
+        }
+
+        .person-card.available {
+            border-color: #67c23a;
+            background: #f0f9ff;
+        }
+
+        .person-card.busy {
+            border-color: #f56c6c;
+            background: #fef0f0;
+        }
+
+        .person-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .person-status {
+            font-size: 13px;
+            color: #606266;
+            margin-bottom: 10px;
+        }
+
+        .person-projects {
+            font-size: 12px;
+            color: #909399;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #909399;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #409eff;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .gantt-label,
+            .gantt-row-label {
+                width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 项目与人员管理系统</h1>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('add')">➕ 添加项目</button>
+            <button class="tab" onclick="switchTab('list')">📋 项目列表</button>
+            <button class="tab" onclick="switchTab('gantt')">📈 甘特图</button>
+            <button class="tab" onclick="switchTab('availability')">👥 人员可用性</button>
+        </div>
+
+        <!-- 添加项目 -->
+        <div id="tab-add" class="tab-content active">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; font-size: 20px; color: #303133;">新建项目</h2>
+                <form id="projectForm">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>项目名称 *</label>
+                            <input type="text" id="projectName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>项目客户 *</label>
+                            <input type="text" id="clientName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>项目状态 *</label>
+                            <select id="projectStatus" required>
+                                <option value="executing">已有合同正执行中</option>
+                                <option value="high">可能性大的项目</option>
+                                <option value="low">有可能或可能性小的项目</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>开始时间 *</label>
+                            <input type="date" id="startDate" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>结束时间 *</label>
+                            <input type="date" id="endDate" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>项目负责人 *</label>
+                            <select id="projectLeader" required>
+                                <option value="">请选择</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>项目参与人 *</label>
+                            <div class="multi-select" id="participantsDisplay"></div>
+                            <div class="select-dropdown" id="participantsDropdown"></div>
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label>其他备注</label>
+                            <textarea id="projectNotes" placeholder="输入项目相关备注信息..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn btn-primary">保存项目</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">重置</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 项目列表 -->
+        <div id="tab-list" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; font-size: 20px; color: #303133;">所有项目</h2>
+                <div id="projectsList"></div>
+            </div>
+        </div>
+
+        <!-- 甘特图 -->
+        <div id="tab-gantt" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; font-size: 20px; color: #303133;">项目时间线</h2>
+                <div id="ganttChart"></div>
+            </div>
+        </div>
+
+        <!-- 人员可用性 -->
+        <div id="tab-availability" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; font-size: 20px; color: #303133;">人员可用性分析</h2>
+                <div class="date-filter">
+                    <label>查询时段:</label>
+                    <input type="date" id="availStartDate">
+                    <span>至</span>
+                    <input type="date" id="availEndDate">
+                    <button class="btn btn-primary" onclick="checkAvailability()">查询</button>
+                </div>
+                <div id="availabilityResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API基础URL - 部署时修改为实际服务器地址
+        const API_BASE = window.location.origin;
+        
+        // 数据存储
+        let projects = [];
+        let teamMembers = [];
+        let selectedParticipants = [];
+
+        // 初始化
+        async function init() {
+            await loadTeamMembers();
+            await loadProjects();
+            loadParticipantsDropdown();
+            setDefaultDates();
+        }
+
+        // 加载团队成员
+        async function loadTeamMembers() {
+            try {
+                const response = await fetch(`${API_BASE}/api/team-members`);
+                teamMembers = await response.json();
+                
+                const leaderSelect = document.getElementById('projectLeader');
+                leaderSelect.innerHTML = '<option value="">请选择</option>';
+                teamMembers.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member;
+                    option.textContent = member;
+                    leaderSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('加载团队成员失败:', error);
+                alert('无法连接到服务器,请检查服务器是否运行');
+            }
+        }
+
+        // 加载项目
+        async function loadProjects() {
+            try {
+                const response = await fetch(`${API_BASE}/api/projects`);
+                projects = await response.json();
+                renderProjectsList();
+                renderGanttChart();
+            } catch (error) {
+                console.error('加载项目失败:', error);
+            }
+        }
+
+        // 加载参与人下拉列表
+        function loadParticipantsDropdown() {
+            const dropdown = document.getElementById('participantsDropdown');
+            dropdown.innerHTML = '';
+            teamMembers.forEach(member => {
+                const option = document.createElement('div');
+                option.className = 'select-option';
+                option.textContent = member;
+                option.onclick = () => toggleParticipant(member);
+                dropdown.appendChild(option);
+            });
+            updateParticipantsDisplay();
+        }
+
+        // 切换参与人选择
+        function toggleParticipant(member) {
+            const index = selectedParticipants.indexOf(member);
+            if (index > -1) {
+                selectedParticipants.splice(index, 1);
+            } else {
+                selectedParticipants.push(member);
+            }
+            updateParticipantsDisplay();
+            updateDropdownStyles();
+        }
+
+        // 更新参与人显示
+        function updateParticipantsDisplay() {
+            const display = document.getElementById('participantsDisplay');
+            if (selectedParticipants.length === 0) {
+                display.innerHTML = '<span style="color: #909399; font-size: 14px;">请选择参与人员</span>';
+            } else {
+                display.innerHTML = selectedParticipants.map(member => `
+                    <span class="multi-select-item">
+                        ${member}
+                        <button onclick="toggleParticipant('${member}')" type="button">×</button>
+                    </span>
+                `).join('');
+            }
+        }
+
+        // 更新下拉列表样式
+        function updateDropdownStyles() {
+            const options = document.querySelectorAll('#participantsDropdown .select-option');
+            options.forEach(option => {
+                if (selectedParticipants.includes(option.textContent)) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+        }
+
+        // 提交表单
+        document.getElementById('projectForm').onsubmit = async function(e) {
+            e.preventDefault();
+            
+            if (selectedParticipants.length === 0) {
+                alert('请至少选择一位项目参与人');
+                return;
+            }
+
+            const project = {
+                name: document.getElementById('projectName').value,
+                client: document.getElementById('clientName').value,
+                status: document.getElementById('projectStatus').value,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+                leader: document.getElementById('projectLeader').value,
+                participants: selectedParticipants,
+                notes: document.getElementById('projectNotes').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/projects`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(project)
+                });
+
+                if (response.ok) {
+                    alert('项目添加成功!');
+                    resetForm();
+                    await loadProjects();
+                } else {
+                    alert('添加项目失败');
+                }
+            } catch (error) {
+                console.error('提交失败:', error);
+                alert('无法连接到服务器');
+            }
+        };
+
+        // 重置表单
+        function resetForm() {
+            document.getElementById('projectForm').reset();
+            selectedParticipants = [];
+            updateParticipantsDisplay();
+            updateDropdownStyles();
+        }
+
+        // 渲染项目列表
+        function renderProjectsList() {
+            const container = document.getElementById('projectsList');
+            
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div>暂无项目,请先添加项目</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const statusText = {
+                'executing': '已有合同正执行中',
+                'high': '可能性大的项目',
+                'low': '有可能或可能性小的项目'
+            };
+
+            container.innerHTML = `
+                <table class="projects-table">
+                    <thead>
+                        <tr>
+                            <th>项目名称</th>
+                            <th>客户</th>
+                            <th>状态</th>
+                            <th>时间</th>
+                            <th>负责人</th>
+                            <th>参与人</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${projects.map(project => `
+                            <tr>
+                                <td><strong>${project.name}</strong></td>
+                                <td>${project.client}</td>
+                                <td><span class="status-badge status-${project.status}">${statusText[project.status]}</span></td>
+                                <td>${project.startDate} ~ ${project.endDate}</td>
+                                <td>${project.leader}</td>
+                                <td>${project.participants.join(', ')}</td>
+                                <td>
+                                    <button class="btn btn-danger" onclick="deleteProject(${project.id})">删除</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // 删除项目
+        async function deleteProject(id) {
+            if (confirm('确定要删除这个项目吗?')) {
+                try {
+                    const response = await fetch(`${API_BASE}/api/projects/${id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        await loadProjects();
+                    } else {
+                        alert('删除失败');
+                    }
+                } catch (error) {
+                    console.error('删除失败:', error);
+                    alert('无法连接到服务器');
+                }
+            }
+        }
+
+        // 渲染甘特图
+        function renderGanttChart() {
+            const container = document.getElementById('ganttChart');
+            
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <div>暂无项目数据</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const allDates = projects.flatMap(p => [new Date(p.startDate), new Date(p.endDate)]);
+            const minDate = new Date(Math.min(...allDates));
+            const maxDate = new Date(Math.max(...allDates));
+            
+            const months = [];
+            let current = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+            while (current <= maxDate) {
+                months.push(new Date(current));
+                current.setMonth(current.getMonth() + 1);
+            }
+
+            const totalDays = (maxDate - minDate) / (1000 * 60 * 60 * 24);
+
+            container.innerHTML = `
+                <div class="gantt-container">
+                    <div class="gantt-chart">
+                        <div class="gantt-header">
+                            <div class="gantt-label">项目名称</div>
+                            <div class="gantt-timeline">
+                                ${months.map(month => `
+                                    <div class="gantt-month">
+                                        ${month.getFullYear()}年${month.getMonth() + 1}月
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ${projects.map(project => {
+                            const start = new Date(project.startDate);
+                            const end = new Date(project.endDate);
+                            const leftPercent = ((start - minDate) / (1000 * 60 * 60 * 24) / totalDays) * 100;
+                            const widthPercent = ((end - start) / (1000 * 60 * 60 * 24) / totalDays) * 100;
+                            
+                            return `
+                                <div class="gantt-row">
+                                    <div class="gantt-row-label">${project.name}</div>
+                                    <div class="gantt-row-bars">
+                                        <div class="gantt-bar gantt-bar-${project.status}" 
+                                             style="left: ${leftPercent}%; width: ${widthPercent}%"
+                                             title="${project.name}\n${project.startDate} - ${project.endDate}\n负责人: ${project.leader}">
+                                            ${project.name}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 设置默认日期
+        function setDefaultDates() {
+            const today = new Date();
+            const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+            
+            document.getElementById('availStartDate').valueAsDate = today;
+            document.getElementById('availEndDate').valueAsDate = nextMonth;
+        }
+
+        // 检查人员可用性
+        function checkAvailability() {
+            const startDate = new Date(document.getElementById('availStartDate').value);
+            const endDate = new Date(document.getElementById('availEndDate').value);
+            const container = document.getElementById('availabilityResult');
+
+            if (!startDate || !endDate) {
+                alert('请选择查询时段');
+                return;
+            }
+
+            if (startDate > endDate) {
+                alert('开始日期不能晚于结束日期');
+                return;
+            }
+
+            const availability = {};
+            teamMembers.forEach(member => {
+                availability[member] = {
+                    projects: [],
+                    available: true
+                };
+            });
+
+            projects.forEach(project => {
+                const projectStart = new Date(project.startDate);
+                const projectEnd = new Date(project.endDate);
+                
+                if (projectStart <= endDate && projectEnd >= startDate) {
+                    if (availability[project.leader]) {
+                        availability[project.leader].projects.push(project.name);
+                        availability[project.leader].available = false;
+                    }
+                    project.participants.forEach(p => {
+                        if (availability[p]) {
+                            availability[p].projects.push(project.name);
+                            availability[p].available = false;
+                        }
+                    });
+                }
+            });
+
+            const availableMembers = Object.entries(availability).filter(([_, data]) => data.available);
+            const busyMembers = Object.entries(availability).filter(([_, data]) => !data.available);
+
+            container.innerHTML = `
+                <div class="availability-section">
+                    <h3 style="color: #67c23a; margin-bottom: 15px;">✓ 可用人员 (${availableMembers.length}人)</h3>
+                    <div class="availability-grid">
+                        ${availableMembers.map(([name, _]) => `
+                            <div class="person-card available">
+                                <div class="person-name">👤 ${name}</div>
+                                <div class="person-status" style="color: #67c23a;">当前可用</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="availability-section">
+                    <h3 style="color: #f56c6c; margin-bottom: 15px;">✗ 忙碌人员 (${busyMembers.length}人)</h3>
+                    <div class="availability-grid">
+                        ${busyMembers.map(([name, data]) => `
+                            <div class="person-card busy">
+                                <div class="person-name">👤 ${name}</div>
+                                <div class="person-status" style="color: #f56c6c;">正在参与项目</div>
+                                <div class="person-projects">📋 ${data.projects.join(', ')}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 切换标签页
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+
+            if (tabName === 'gantt') {
+                renderGanttChart();
+            }
+        }
+
+        // 页面加载时初始化
+        init();
+    </script>
+</body>
+</html>
