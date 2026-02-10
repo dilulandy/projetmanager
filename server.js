@@ -23,32 +23,59 @@ const db = new sqlite3.Database('./projects.db', (err) => {
 
 // 创建数据表
 function initDatabase() {
-    db.run(`
-        CREATE TABLE IF NOT EXISTS projects (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            client TEXT NOT NULL,
-            status TEXT NOT NULL,
-            startDate TEXT NOT NULL,
-            endDate TEXT NOT NULL,
-            leader TEXT NOT NULL,
-            participants TEXT NOT NULL,
-            notes TEXT,
-            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
+    // 使用 serialize 确保按顺序执行
+    db.serialize(() => {
+        // 创建项目表
+        db.run(`
+            CREATE TABLE IF NOT EXISTS projects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                client TEXT NOT NULL,
+                status TEXT NOT NULL,
+                startDate TEXT NOT NULL,
+                endDate TEXT NOT NULL,
+                leader TEXT NOT NULL,
+                participants TEXT NOT NULL,
+                notes TEXT,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `, (err) => {
+            if (err) {
+                console.error('创建projects表失败:', err);
+            } else {
+                console.log('projects表已就绪');
+            }
+        });
 
-    db.run(`
-        CREATE TABLE IF NOT EXISTS team_members (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL
-        )
-    `);
-
-    // 插入默认团队成员(如果不存在)
-    const defaultMembers = ['张三', '李四', '王五', '赵六', '孙七', '周八', '吴九', '郑十'];
-    defaultMembers.forEach(member => {
-        db.run('INSERT OR IGNORE INTO team_members (name) VALUES (?)', [member]);
+        // 创建团队成员表
+        db.run(`
+            CREATE TABLE IF NOT EXISTS team_members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL
+            )
+        `, (err) => {
+            if (err) {
+                console.error('创建team_members表失败:', err);
+            } else {
+                console.log('team_members表已就绪');
+                
+                // 表创建成功后插入默认成员
+                const defaultMembers = ['张三', '李四', '王五', '赵六', '孙七', '周八', '吴九', '郑十'];
+                const stmt = db.prepare('INSERT OR IGNORE INTO team_members (name) VALUES (?)');
+                
+                defaultMembers.forEach(member => {
+                    stmt.run(member);
+                });
+                
+                stmt.finalize((err) => {
+                    if (err) {
+                        console.error('插入默认成员失败:', err);
+                    } else {
+                        console.log('默认团队成员已初始化');
+                    }
+                });
+            }
+        });
     });
 }
 
