@@ -60,7 +60,7 @@ function initDatabase() {
                 console.log('team_members表已就绪');
                 
                 // 表创建成功后插入默认成员
-                const defaultMembers = ['张三', '李四', '王五', '赵六', '孙七', '周八', '吴九', '郑十'];
+                const defaultMembers = ['Austin Chai', 'Keming Zhu', 'Sophia Wu', 'Tao Shi', 'Xi Liu'];
                 const stmt = db.prepare('INSERT OR IGNORE INTO team_members (name) VALUES (?)');
                 
                 defaultMembers.forEach(member => {
