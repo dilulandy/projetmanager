@@ -30,6 +30,7 @@ function initDatabase() {
             CREATE TABLE IF NOT EXISTS projects (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
+                projectNumber TEXT,
                 client TEXT NOT NULL,
                 status TEXT NOT NULL,
                 startDate TEXT NOT NULL,
@@ -60,7 +61,7 @@ function initDatabase() {
                 console.log('team_members表已就绪');
                 
                 // 表创建成功后插入默认成员
-                const defaultMembers = ['Austin Chai', 'Keming Zhu', 'Sophia Wu', 'Tao Shi', 'Xi Liu'];
+                const defaultMembers = ['张三', '李四', '王五', '赵六', '孙七', '周八', '吴九', '郑十'];
                 const stmt = db.prepare('INSERT OR IGNORE INTO team_members (name) VALUES (?)');
                 
                 defaultMembers.forEach(member => {
@@ -99,15 +100,16 @@ app.get('/api/projects', (req, res) => {
 
 // 添加项目
 app.post('/api/projects', (req, res) => {
-    const { name, client, status, startDate, endDate, leader, participants, notes } = req.body;
+    const { name, projectNumber, client, status, startDate, endDate, leader, participants, notes } = req.body;
     
     const sql = `
-        INSERT INTO projects (name, client, status, startDate, endDate, leader, participants, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO projects (name, projectNumber, client, status, startDate, endDate, leader, participants, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const params = [
-        name, 
+        name,
+        projectNumber || '',
         client, 
         status, 
         startDate, 
