@@ -317,6 +317,16 @@
             color: #606266;
             font-weight: 600;
             font-size: 14px;
+            user-select: none;
+        }
+
+        .projects-table th[onclick] {
+            transition: background 0.2s;
+        }
+
+        .projects-table th[onclick]:hover {
+            background: #e9ecef;
+            color: #409eff;
         }
 
         .projects-table tr:hover {
@@ -511,9 +521,14 @@
                 <h2 style="margin-bottom: 20px; font-size: 20px; color: #303133;">新建项目</h2>
                 <form id="projectForm">
                     <div class="form-grid">
-                        <div class="form-group full-width">
+                        <div class="form-group">
                             <label>项目名称 *</label>
                             <input type="text" id="projectName" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>项目号</label>
+                            <input type="text" id="projectNumber" placeholder="如：PRJ-2024-001">
                         </div>
                         
                         <div class="form-group">
@@ -548,7 +563,7 @@
                         </div>
                         
                         <div class="form-group">
-                            <label>项目参与人 *</label>
+                            <label>项目参与人</label>
                             <div class="custom-multiselect">
                                 <div class="multiselect-display" id="participantsDisplay">
                                     <span class="placeholder">请选择参与人员</span>
@@ -778,14 +793,10 @@
         // 提交表单
         document.getElementById('projectForm').onsubmit = async function(e) {
             e.preventDefault();
-            
-            if (selectedParticipants.length === 0) {
-                alert('请至少选择一位项目参与人');
-                return;
-            }
 
             const project = {
                 name: document.getElementById('projectName').value,
+                projectNumber: document.getElementById('projectNumber').value,
                 client: document.getElementById('clientName').value,
                 status: document.getElementById('projectStatus').value,
                 startDate: document.getElementById('startDate').value,
@@ -831,6 +842,58 @@
         }
 
         // 渲染项目列表
+        // 排序相关变量
+        let currentSortField = 'createdAt';
+        let currentSortOrder = 'desc';
+
+        // 排序项目
+        function sortProjects(field) {
+            if (currentSortField === field) {
+                // 同一字段，切换排序顺序
+                currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                // 不同字段，默认升序
+                currentSortField = field;
+                currentSortOrder = 'asc';
+            }
+
+            projects.sort((a, b) => {
+                let aVal, bVal;
+
+                switch(field) {
+                    case 'name':
+                        aVal = a.name.toLowerCase();
+                        bVal = b.name.toLowerCase();
+                        break;
+                    case 'client':
+                        aVal = a.client.toLowerCase();
+                        bVal = b.client.toLowerCase();
+                        break;
+                    case 'status':
+                        const statusOrder = { 'executing': 1, 'high': 2, 'low': 3 };
+                        aVal = statusOrder[a.status];
+                        bVal = statusOrder[b.status];
+                        break;
+                    case 'startDate':
+                        aVal = new Date(a.startDate);
+                        bVal = new Date(b.startDate);
+                        break;
+                    case 'leader':
+                        aVal = a.leader.toLowerCase();
+                        bVal = b.leader.toLowerCase();
+                        break;
+                    default:
+                        return 0;
+                }
+
+                if (aVal < bVal) return currentSortOrder === 'asc' ? -1 : 1;
+                if (aVal > bVal) return currentSortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            renderProjectsList();
+        }
+
         function renderProjectsList() {
             const container = document.getElementById('projectsList');
             
@@ -850,15 +913,32 @@
                 'low': '有可能或可能性小的项目'
             };
 
+            // 排序指示器
+            const getSortIcon = (field) => {
+                if (currentSortField !== field) return '⇅';
+                return currentSortOrder === 'asc' ? '↑' : '↓';
+            };
+
             container.innerHTML = `
                 <table class="projects-table">
                     <thead>
                         <tr>
-                            <th>项目名称</th>
-                            <th>客户</th>
-                            <th>状态</th>
-                            <th>时间</th>
-                            <th>负责人</th>
+                            <th onclick="sortProjects('name')" style="cursor: pointer;">
+                                项目名称 ${getSortIcon('name')}
+                            </th>
+                            <th>项目号</th>
+                            <th onclick="sortProjects('client')" style="cursor: pointer;">
+                                客户 ${getSortIcon('client')}
+                            </th>
+                            <th onclick="sortProjects('status')" style="cursor: pointer;">
+                                状态 ${getSortIcon('status')}
+                            </th>
+                            <th onclick="sortProjects('startDate')" style="cursor: pointer;">
+                                时间 ${getSortIcon('startDate')}
+                            </th>
+                            <th onclick="sortProjects('leader')" style="cursor: pointer;">
+                                负责人 ${getSortIcon('leader')}
+                            </th>
                             <th>参与人</th>
                             <th>操作</th>
                         </tr>
@@ -867,11 +947,12 @@
                         ${projects.map(project => `
                             <tr>
                                 <td><strong>${project.name}</strong></td>
+                                <td>${project.projectNumber || '-'}</td>
                                 <td>${project.client}</td>
                                 <td><span class="status-badge status-${project.status}">${statusText[project.status]}</span></td>
                                 <td>${project.startDate} ~ ${project.endDate}</td>
                                 <td>${project.leader}</td>
-                                <td>${project.participants.join(', ')}</td>
+                                <td>${project.participants && project.participants.length > 0 ? project.participants.join(', ') : '-'}</td>
                                 <td>
                                     <button class="btn btn-danger" onclick="deleteProject(${project.id})">删除</button>
                                 </td>
