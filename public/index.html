@@ -431,6 +431,7 @@
             <button class="tab" onclick="switchTab('list')">📋 项目列表</button>
             <button class="tab" onclick="switchTab('gantt')">📈 甘特图</button>
             <button class="tab" onclick="switchTab('availability')">👥 人员可用性</button>
+            <button class="tab" onclick="switchTab('members')">👤 团队成员</button>
         </div>
 
         <!-- 添加项目 -->
@@ -525,6 +526,26 @@
                 <div id="availabilityResult"></div>
             </div>
         </div>
+
+        <!-- 团队成员管理 -->
+        <div id="tab-members" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; font-size: 20px; color: #303133;">团队成员管理</h2>
+                
+                <div style="margin-bottom: 30px;">
+                    <h3 style="font-size: 16px; color: #606266; margin-bottom: 15px;">添加新成员</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="newMemberName" placeholder="输入成员姓名" style="flex: 1; max-width: 300px;">
+                        <button class="btn btn-primary" onclick="addNewMember()">添加成员</button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 16px; color: #606266; margin-bottom: 15px;">当前团队成员</h3>
+                    <div id="membersList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -558,6 +579,9 @@
                     option.textContent = member;
                     leaderSelect.appendChild(option);
                 });
+
+                // 渲染成员列表
+                renderMembersList();
             } catch (error) {
                 console.error('加载团队成员失败:', error);
                 alert('无法连接到服务器,请检查服务器是否运行');
@@ -895,6 +919,62 @@
                     </div>
                 </div>
             `;
+        }
+
+        // 渲染成员列表
+        function renderMembersList() {
+            const container = document.getElementById('membersList');
+            if (!container) return;
+
+            if (teamMembers.length === 0) {
+                container.innerHTML = '<div style="color: #909399;">暂无团队成员</div>';
+                return;
+            }
+
+            container.innerHTML = teamMembers.map(member => `
+                <div style="background: #f5f7fa; padding: 12px; border-radius: 6px; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 14px;">👤 ${member}</span>
+                </div>
+            `).join('');
+        }
+
+        // 添加新成员
+        async function addNewMember() {
+            const input = document.getElementById('newMemberName');
+            const name = input.value.trim();
+
+            if (!name) {
+                alert('请输入成员姓名');
+                return;
+            }
+
+            if (teamMembers.includes(name)) {
+                alert('该成员已存在');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/team-members`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name })
+                });
+
+                if (response.ok) {
+                    alert('成员添加成功!');
+                    input.value = '';
+                    await loadTeamMembers();
+                    loadParticipantsDropdown();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || '添加失败');
+                }
+            } catch (error) {
+                console.error('添加成员失败:', error);
+                alert('无法连接到服务器');
+            }
         }
 
         // 切换标签页
