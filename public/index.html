@@ -119,6 +119,16 @@
             border-radius: 4px;
             padding: 8px;
             min-height: 45px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .multi-select:hover {
+            border-color: #409eff;
+        }
+
+        .multi-select.active {
+            border-color: #409eff;
         }
 
         .multi-select-item {
@@ -143,12 +153,18 @@
         }
 
         .select-dropdown {
+            display: none;
             margin-top: 5px;
             max-height: 200px;
             overflow-y: auto;
             border: 1px solid #dcdfe6;
             border-radius: 4px;
             background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .select-dropdown.show {
+            display: block;
         }
 
         .select-option {
@@ -603,6 +619,8 @@
         // 加载参与人下拉列表
         function loadParticipantsDropdown() {
             const dropdown = document.getElementById('participantsDropdown');
+            const display = document.getElementById('participantsDisplay');
+            
             dropdown.innerHTML = '';
             teamMembers.forEach(member => {
                 const option = document.createElement('div');
@@ -612,6 +630,23 @@
                 dropdown.appendChild(option);
             });
             updateParticipantsDisplay();
+
+            // 添加点击事件：点击显示框展开/收起下拉列表
+            display.onclick = function(e) {
+                // 如果点击的是删除按钮，不展开下拉列表
+                if (e.target.tagName === 'BUTTON') return;
+                
+                dropdown.classList.toggle('show');
+                display.classList.toggle('active');
+            };
+
+            // 点击外部区域关闭下拉列表
+            document.addEventListener('click', function(e) {
+                if (!display.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                    display.classList.remove('active');
+                }
+            });
         }
 
         // 切换参与人选择
@@ -630,12 +665,12 @@
         function updateParticipantsDisplay() {
             const display = document.getElementById('participantsDisplay');
             if (selectedParticipants.length === 0) {
-                display.innerHTML = '<span style="color: #909399; font-size: 14px;">请选择参与人员</span>';
+                display.innerHTML = '<span style="color: #909399; font-size: 14px;">点击选择参与人员</span>';
             } else {
                 display.innerHTML = selectedParticipants.map(member => `
                     <span class="multi-select-item">
                         ${member}
-                        <button onclick="toggleParticipant('${member}')" type="button">×</button>
+                        <button onclick="event.stopPropagation(); toggleParticipant('${member}')" type="button">×</button>
                     </span>
                 `).join('');
             }
