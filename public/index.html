@@ -114,74 +114,6 @@
             min-height: 80px;
         }
 
-        .multi-select {
-            border: 1px solid #dcdfe6;
-            border-radius: 4px;
-            padding: 8px;
-            min-height: 45px;
-            cursor: pointer;
-            transition: border-color 0.3s;
-        }
-
-        .multi-select:hover {
-            border-color: #409eff;
-        }
-
-        .multi-select.active {
-            border-color: #409eff;
-        }
-
-        .multi-select-item {
-            display: inline-flex;
-            align-items: center;
-            background: #f0f9ff;
-            color: #409eff;
-            padding: 4px 8px;
-            margin: 2px;
-            border-radius: 3px;
-            font-size: 13px;
-        }
-
-        .multi-select-item button {
-            background: none;
-            border: none;
-            color: #409eff;
-            margin-left: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            line-height: 1;
-        }
-
-        .select-dropdown {
-            display: none;
-            margin-top: 5px;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #dcdfe6;
-            border-radius: 4px;
-            background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .select-dropdown.show {
-            display: block;
-        }
-
-        .select-option {
-            padding: 8px 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .select-option:hover {
-            background: #f5f7fa;
-        }
-
-        .select-option.selected {
-            background: #ecf5ff;
-            color: #409eff;
-        }
-
         .btn {
             padding: 10px 20px;
             border: none;
@@ -494,8 +426,9 @@
                         
                         <div class="form-group">
                             <label>项目参与人 *</label>
-                            <div class="multi-select" id="participantsDisplay"></div>
-                            <div class="select-dropdown" id="participantsDropdown"></div>
+                            <select id="projectParticipants" multiple style="min-height: 120px;">
+                            </select>
+                            <small style="color: #909399; font-size: 12px; margin-top: 5px; display: block;">按住 Ctrl (Windows) 或 Command (Mac) 可多选</small>
                         </div>
                         
                         <div class="form-group full-width">
@@ -571,13 +504,11 @@
         // 数据存储
         let projects = [];
         let teamMembers = [];
-        let selectedParticipants = [];
 
         // 初始化
         async function init() {
             await loadTeamMembers();
             await loadProjects();
-            loadParticipantsDropdown();
             setDefaultDates();
         }
 
@@ -587,6 +518,7 @@
                 const response = await fetch(`${API_BASE}/api/team-members`);
                 teamMembers = await response.json();
                 
+                // 填充项目负责人下拉框
                 const leaderSelect = document.getElementById('projectLeader');
                 leaderSelect.innerHTML = '<option value="">请选择</option>';
                 teamMembers.forEach(member => {
@@ -594,6 +526,16 @@
                     option.value = member;
                     option.textContent = member;
                     leaderSelect.appendChild(option);
+                });
+
+                // 填充项目参与人多选框
+                const participantsSelect = document.getElementById('projectParticipants');
+                participantsSelect.innerHTML = '';
+                teamMembers.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member;
+                    option.textContent = member;
+                    participantsSelect.appendChild(option);
                 });
 
                 // 渲染成员列表
@@ -616,81 +558,13 @@
             }
         }
 
-        // 加载参与人下拉列表
-        function loadParticipantsDropdown() {
-            const dropdown = document.getElementById('participantsDropdown');
-            const display = document.getElementById('participantsDisplay');
-            
-            dropdown.innerHTML = '';
-            teamMembers.forEach(member => {
-                const option = document.createElement('div');
-                option.className = 'select-option';
-                option.textContent = member;
-                option.onclick = () => toggleParticipant(member);
-                dropdown.appendChild(option);
-            });
-            updateParticipantsDisplay();
-
-            // 添加点击事件：点击显示框展开/收起下拉列表
-            display.onclick = function(e) {
-                // 如果点击的是删除按钮，不展开下拉列表
-                if (e.target.tagName === 'BUTTON') return;
-                
-                dropdown.classList.toggle('show');
-                display.classList.toggle('active');
-            };
-
-            // 点击外部区域关闭下拉列表
-            document.addEventListener('click', function(e) {
-                if (!display.contains(e.target) && !dropdown.contains(e.target)) {
-                    dropdown.classList.remove('show');
-                    display.classList.remove('active');
-                }
-            });
-        }
-
-        // 切换参与人选择
-        function toggleParticipant(member) {
-            const index = selectedParticipants.indexOf(member);
-            if (index > -1) {
-                selectedParticipants.splice(index, 1);
-            } else {
-                selectedParticipants.push(member);
-            }
-            updateParticipantsDisplay();
-            updateDropdownStyles();
-        }
-
-        // 更新参与人显示
-        function updateParticipantsDisplay() {
-            const display = document.getElementById('participantsDisplay');
-            if (selectedParticipants.length === 0) {
-                display.innerHTML = '<span style="color: #909399; font-size: 14px;">点击选择参与人员</span>';
-            } else {
-                display.innerHTML = selectedParticipants.map(member => `
-                    <span class="multi-select-item">
-                        ${member}
-                        <button onclick="event.stopPropagation(); toggleParticipant('${member}')" type="button">×</button>
-                    </span>
-                `).join('');
-            }
-        }
-
-        // 更新下拉列表样式
-        function updateDropdownStyles() {
-            const options = document.querySelectorAll('#participantsDropdown .select-option');
-            options.forEach(option => {
-                if (selectedParticipants.includes(option.textContent)) {
-                    option.classList.add('selected');
-                } else {
-                    option.classList.remove('selected');
-                }
-            });
-        }
-
         // 提交表单
         document.getElementById('projectForm').onsubmit = async function(e) {
             e.preventDefault();
+            
+            // 获取选中的参与人
+            const participantsSelect = document.getElementById('projectParticipants');
+            const selectedParticipants = Array.from(participantsSelect.selectedOptions).map(option => option.value);
             
             if (selectedParticipants.length === 0) {
                 alert('请至少选择一位项目参与人');
@@ -733,9 +607,6 @@
         // 重置表单
         function resetForm() {
             document.getElementById('projectForm').reset();
-            selectedParticipants = [];
-            updateParticipantsDisplay();
-            updateDropdownStyles();
         }
 
         // 渲染项目列表
@@ -1001,7 +872,6 @@
                     alert('成员添加成功!');
                     input.value = '';
                     await loadTeamMembers();
-                    loadParticipantsDropdown();
                 } else {
                     const error = await response.json();
                     alert(error.error || '添加失败');
