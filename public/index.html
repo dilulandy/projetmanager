@@ -756,11 +756,11 @@ function renderGantt() {
                 <div class="gantt-col-name ${nameSorted ? 'sorted' : ''}" onclick="sortGantt('name')">
                     项目名称 ${ganttSortIcon('name')}
                 </div>
-                <div class="gantt-col-leader ${leaderSorted ? 'sorted' : ''}" onclick="sortGantt('leader')">
-                    负责人 ${ganttSortIcon('leader')}
-                </div>
                 <div class="gantt-col-client ${clientSorted ? 'sorted' : ''}" onclick="sortGantt('client')">
                     客户 ${ganttSortIcon('client')}
+                </div>
+                <div class="gantt-col-leader ${leaderSorted ? 'sorted' : ''}" onclick="sortGantt('leader')">
+                    负责人 ${ganttSortIcon('leader')}
                 </div>
                 <div class="gantt-months">
                     ${months.map(m => `<div class="gantt-month">${m.getFullYear()}年${m.getMonth()+1}月</div>`).join('')}
