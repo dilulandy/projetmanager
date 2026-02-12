@@ -41,7 +41,7 @@ db.serialize(() => {
         name TEXT UNIQUE NOT NULL
     )`);
 
-    const defaults = ['张三', '李四', '王五', '赵六', '孙七', '周八', '吴九', '郑十'];
+    const defaults = ['Austin Chai','Xi Liu','Keming Zhu','Sophia Wu','Tao Shi'];
     const stmt = db.prepare('INSERT OR IGNORE INTO team_members (name) VALUES (?)');
     defaults.forEach(name => stmt.run(name));
     stmt.finalize();
