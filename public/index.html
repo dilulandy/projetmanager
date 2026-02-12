@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目与人员管理</title>
+    <title>项目与人员管理系统</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -738,8 +738,8 @@ function renderGantt() {
         return `
             <div class="gantt-row">
                 <div class="gantt-cell-name">${esc(p.name)}</div>
-                <div class="gantt-cell-leader">${esc(p.leader)}</div>
                 <div class="gantt-cell-client">${esc(p.client)}</div>
+                <div class="gantt-cell-leader">${esc(p.leader)}</div>
                 <div class="gantt-bars">
                     <div class="gantt-bar bar-${p.status}"
                          style="left:${left}%;width:${width}%"
