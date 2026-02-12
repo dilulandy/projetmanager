@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目与人员管理系统</title>
+    <title>项目与人员管理</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -137,8 +137,14 @@
             cursor: pointer; user-select: none; display: flex; align-items: center; gap: 4px;
         }
         .gantt-col-leader:hover { color: #409eff; }
-        .gantt-col-name .sort-icon, .gantt-col-leader .sort-icon { font-size: 12px; color: #c0c4cc; }
-        .gantt-col-name.sorted .sort-icon, .gantt-col-leader.sorted .sort-icon { color: #409eff; }
+        .gantt-col-client {
+            width: 110px; flex-shrink: 0; padding: 10px 12px;
+            font-weight: 600; font-size: 14px; color: #606266;
+            cursor: pointer; user-select: none; display: flex; align-items: center; gap: 4px;
+        }
+        .gantt-col-client:hover { color: #409eff; }
+        .gantt-col-name .sort-icon, .gantt-col-leader .sort-icon, .gantt-col-client .sort-icon { font-size: 12px; color: #c0c4cc; }
+        .gantt-col-name.sorted .sort-icon, .gantt-col-leader.sorted .sort-icon, .gantt-col-client.sorted .sort-icon { color: #409eff; }
         .gantt-months { flex: 1; display: flex; }
         .gantt-month {
             flex: 1; text-align: center; padding: 10px 4px;
@@ -152,6 +158,10 @@
         }
         .gantt-cell-leader {
             width: 100px; flex-shrink: 0; padding: 8px 12px;
+            font-size: 13px; color: #606266;
+        }
+        .gantt-cell-client {
+            width: 110px; flex-shrink: 0; padding: 8px 12px;
             font-size: 13px; color: #606266;
         }
         .gantt-bars { flex: 1; position: relative; height: 46px; }
@@ -486,6 +496,7 @@ function renderList() {
             <td>${esc(p.leader)}</td>
             <td>${p.participants && p.participants.length ? p.participants.map(esc).join(', ') : '-'}</td>
             <td>${esc(p.notes || '-')}</td>
+            <td style="white-space:nowrap;">${formatDate(p.updatedAt || p.createdAt)}</td>
             <td style="white-space:nowrap;">
                 <button class="btn btn-edit" onclick="editProject(${p.id})">编辑</button>
                 <button class="btn btn-danger" onclick="deleteProject(${p.id})">删除</button>
@@ -505,6 +516,7 @@ function renderList() {
                     <th class="${thClass('leader')}" onclick="sortList('leader')">负责人 ${sortIcon('leader')}</th>
                     <th>参与人</th>
                     <th>备注</th>
+                    <th class="${thClass('updatedAt')}" onclick="sortList('updatedAt')">更新日期 ${sortIcon('updatedAt')}</th>
                     <th>操作</th>
                 </tr>
             </thead>
@@ -698,6 +710,7 @@ function renderGantt() {
     data = [...data].sort((a, b) => {
         let av, bv;
         if (ganttSort.field === 'leader') { av = a.leader.toLowerCase(); bv = b.leader.toLowerCase(); }
+        else if (ganttSort.field === 'client') { av = a.client.toLowerCase(); bv = b.client.toLowerCase(); }
         else if (ganttSort.field === 'status') { av = statusOrder[a.status]; bv = statusOrder[b.status]; }
         else { av = new Date(a.startDate); bv = new Date(b.startDate); }
         if (av < bv) return ganttSort.dir === 'asc' ? -1 : 1;
@@ -710,22 +723,23 @@ function renderGantt() {
     const maxDate = new Date(Math.max(...allDates));
     const totalDays = Math.max(1, (maxDate - minDate) / 86400000);
 
-    // 生成月份
     const months = [];
     let cur = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
     while (cur <= maxDate) { months.push(new Date(cur)); cur.setMonth(cur.getMonth() + 1); }
 
-    const nameSorted = ganttSort.field === 'name';
+    const nameSorted   = ganttSort.field === 'name';
     const leaderSorted = ganttSort.field === 'leader';
+    const clientSorted = ganttSort.field === 'client';
 
     const rows = data.map(p => {
         const s = new Date(p.startDate), e = new Date(p.endDate);
-        const left = ((s - minDate) / 86400000 / totalDays * 100).toFixed(2);
+        const left  = ((s - minDate) / 86400000 / totalDays * 100).toFixed(2);
         const width = Math.max(0.5, ((e - s) / 86400000 / totalDays * 100)).toFixed(2);
         return `
             <div class="gantt-row">
                 <div class="gantt-cell-name">${esc(p.name)}</div>
                 <div class="gantt-cell-leader">${esc(p.leader)}</div>
+                <div class="gantt-cell-client">${esc(p.client)}</div>
                 <div class="gantt-bars">
                     <div class="gantt-bar bar-${p.status}"
                          style="left:${left}%;width:${width}%"
@@ -745,6 +759,9 @@ function renderGantt() {
                 <div class="gantt-col-leader ${leaderSorted ? 'sorted' : ''}" onclick="sortGantt('leader')">
                     负责人 ${ganttSortIcon('leader')}
                 </div>
+                <div class="gantt-col-client ${clientSorted ? 'sorted' : ''}" onclick="sortGantt('client')">
+                    客户 ${ganttSortIcon('client')}
+                </div>
                 <div class="gantt-months">
                     ${months.map(m => `<div class="gantt-month">${m.getFullYear()}年${m.getMonth()+1}月</div>`).join('')}
                 </div>
@@ -761,21 +778,31 @@ function checkAvail() {
     if (!start || !end || isNaN(start) || isNaN(end)) return alert('请选择查询时段');
     if (start > end) return alert('开始日期不能晚于结束日期');
 
+    // busy[成员] = [ { name: 项目名, isPM: true/false } ]
     const busy = {};
     members.forEach(m => { busy[m] = []; });
 
     projects.forEach(p => {
         const ps = new Date(p.startDate), pe = new Date(p.endDate);
         if (ps <= end && pe >= start) {
-            if (busy[p.leader] !== undefined) busy[p.leader].push(p.name);
+            if (busy[p.leader] !== undefined) {
+                busy[p.leader].push({ name: p.name, isPM: true });
+            }
             (p.participants || []).forEach(m => {
-                if (busy[m] !== undefined) busy[m].push(p.name);
+                if (busy[m] !== undefined && m !== p.leader) {
+                    busy[m].push({ name: p.name, isPM: false });
+                }
             });
         }
     });
 
-    const avail = members.filter(m => !busy[m].length);
-    const busyList = members.filter(m => busy[m].length);
+    const avail    = members.filter(m => !busy[m].length);
+    const busyList = members.filter(m =>  busy[m].length);
+
+    const projectTag = item =>
+        item.isPM
+            ? `${esc(item.name)}<span style="background:#409eff;color:white;font-size:11px;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:600;">PM</span>`
+            : esc(item.name);
 
     document.getElementById('availResult').innerHTML = `
         <div style="margin-bottom:20px;">
@@ -795,7 +822,9 @@ function checkAvail() {
                     <div class="person-card busy">
                         <div class="person-name">👤 ${esc(m)}</div>
                         <div class="person-status" style="color:#f56c6c;">参与项目中</div>
-                        <div class="person-projects">📋 ${busy[m].map(esc).join('、')}</div>
+                        <div class="person-projects">
+                            ${busy[m].map(item => `<div style="margin-top:4px;">📋 ${projectTag(item)}</div>`).join('')}
+                        </div>
                     </div>`).join('') || '<div style="color:#909399">无</div>'}
             </div>
         </div>`;
@@ -806,6 +835,13 @@ function checkAvail() {
 function esc(str) {
     if (!str) return '';
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatDate(str) {
+    if (!str) return '-';
+    const d = new Date(str);
+    if (isNaN(d)) return '-';
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 // ── 启动 ─────────────────────────────────────────────
