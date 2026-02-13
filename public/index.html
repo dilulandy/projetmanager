@@ -200,8 +200,11 @@
         .filter-bar label { font-size: 14px; color: #606266; }
         .filter-bar select { padding: 7px 28px 7px 10px; }
 
+        /* 成员管理布局 */
+        .members-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 768px) {
             .form-grid { grid-template-columns: 1fr; }
+            .members-container { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -214,10 +217,9 @@
         <button class="tab" onclick="switchTab('list', this)">📋 项目列表</button>
         <button class="tab" onclick="switchTab('gantt', this)">📈 甘特图</button>
         <button class="tab" onclick="switchTab('avail', this)">👥 人员可用性</button>
-        <button class="tab" onclick="switchTab('members', this)">👤 团队成员</button>
+        <button class="tab" onclick="switchTab('members', this)">👤 成员管理</button>
     </div>
 
-    <!-- 添加/编辑项目 -->
     <div id="tab-add" class="tab-content active">
         <div class="card">
             <div class="card-title" id="formTitle">新建项目</div>
@@ -253,13 +255,13 @@
                         <input type="date" id="fEnd" required>
                     </div>
                     <div class="form-group">
-                        <label>项目负责人 *</label>
+                        <label>项目负责人 (PM) *</label>
                         <select id="fLeader" required>
-                            <option value="">请选择</option>
+                            <option value="">请选择负责人</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>项目参与人</label>
+                        <label>项目参与人 (Team)</label>
                         <div class="multiselect" id="msWrap">
                             <div class="ms-display" id="msDisplay">
                                 <span class="ms-placeholder">请选择参与人员</span>
@@ -271,7 +273,7 @@
                     <div class="form-group">
                         <label>销售代表 (CR)</label>
                         <select id="fSales">
-                            <option value="">请选择</option>
+                            <option value="">请选择销售</option>
                         </select>
                     </div>
                     <div class="form-group full">
@@ -287,7 +289,6 @@
         </div>
     </div>
 
-    <!-- 项目列表 -->
     <div id="tab-list" class="tab-content">
         <div class="card">
             <div class="card-title">项目列表</div>
@@ -300,7 +301,6 @@
         </div>
     </div>
 
-    <!-- 甘特图 -->
     <div id="tab-gantt" class="tab-content">
         <div class="card">
             <div class="card-title">项目时间线</div>
@@ -323,7 +323,6 @@
         </div>
     </div>
 
-    <!-- 人员可用性 -->
     <div id="tab-avail" class="tab-content">
         <div class="card">
             <div class="card-title">人员可用性分析</div>
@@ -338,19 +337,25 @@
         </div>
     </div>
 
-    <!-- 团队成员 -->
     <div id="tab-members" class="tab-content">
-        <div class="card">
-            <div class="card-title">团队成员管理</div>
-            <div style="margin-bottom:24px;">
-                <div style="font-size:14px;font-weight:500;color:#606266;margin-bottom:10px;">添加新成员</div>
-                <div style="display:flex;gap:10px;align-items:center;">
-                    <input type="text" id="newMemberName" placeholder="输入成员姓名" style="max-width:260px;flex:1;">
-                    <button class="btn btn-primary" onclick="addMember()">添加成员</button>
+        <div class="members-container">
+            <div class="card">
+                <div class="card-title">👨‍💻 项目团队成员 (PM/Member)</div>
+                <div style="margin-bottom:20px;display:flex;gap:10px;">
+                    <input type="text" id="newMemberName" placeholder="输入成员姓名" style="flex:1;">
+                    <button class="btn btn-primary" onclick="addMember()">添加</button>
                 </div>
+                <div id="membersList" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
             </div>
-            <div style="font-size:14px;font-weight:500;color:#606266;margin-bottom:10px;">当前成员</div>
-            <div id="membersList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;"></div>
+
+            <div class="card">
+                <div class="card-title">💼 销售代表 (CR)</div>
+                <div style="margin-bottom:20px;display:flex;gap:10px;">
+                    <input type="text" id="newSalesName" placeholder="输入销售姓名" style="flex:1;">
+                    <button class="btn btn-primary" onclick="addSales()">添加</button>
+                </div>
+                <div id="salesList" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -359,7 +364,8 @@
 const API = window.location.origin;
 
 let projects = [];
-let members = [];
+let members = [];   // 项目团队
+let salesReps = []; // 销售代表
 let selectedParticipants = [];
 
 // 列表排序状态
@@ -370,8 +376,7 @@ let ganttSort = { field: 'startDate', dir: 'asc' };
 // ── 初始化 ──────────────────────────────────────────
 
 async function init() {
-    await loadMembers();
-    await loadProjects();
+    await Promise.all([loadMembers(), loadSalesReps(), loadProjects()]);
     setDefaultDates();
     initMultiselect();
 }
@@ -406,31 +411,56 @@ async function apiFetch(url, options = {}) {
     return res.json();
 }
 
-// ── 团队成员 ─────────────────────────────────────────
+// ── 成员管理 (团队 & 销售) ──────────────────────────
 
 async function loadMembers() {
     members = await apiFetch('/api/team-members');
-
-    // 填充负责人和CR下拉框（共用同一份成员列表）
-    ['fLeader', 'fSales'].forEach(id => {
-        const sel = document.getElementById(id);
-        sel.innerHTML = '<option value="">请选择</option>';
-        members.forEach(m => {
-            const o = document.createElement('option');
-            o.value = o.textContent = m;
-            sel.appendChild(o);
-        });
+    
+    // 填充【负责人】下拉框
+    const sel = document.getElementById('fLeader');
+    sel.innerHTML = '<option value="">请选择负责人</option>';
+    members.forEach(m => {
+        const o = document.createElement('option');
+        o.value = o.textContent = m;
+        sel.appendChild(o);
     });
 
     renderMembersList();
-    rebuildDropdown();
+    rebuildDropdown(); // 参与人多选框
+}
+
+async function loadSalesReps() {
+    salesReps = await apiFetch('/api/sales-reps');
+    
+    // 填充【销售代表】下拉框
+    const sel = document.getElementById('fSales');
+    sel.innerHTML = '<option value="">请选择销售</option>';
+    salesReps.forEach(s => {
+        const o = document.createElement('option');
+        o.value = o.textContent = s;
+        sel.appendChild(o);
+    });
+
+    renderSalesList();
 }
 
 function renderMembersList() {
     const el = document.getElementById('membersList');
     if (!el) return;
     el.innerHTML = members.map(m => `
-        <div style="background:#f5f7fa;padding:10px 14px;border-radius:6px;font-size:14px;">👤 ${m}</div>
+        <div style="background:#ecf5ff;color:#409eff;padding:6px 12px;border-radius:4px;font-size:14px;border:1px solid #d9ecff;">
+            ${esc(m)}
+        </div>
+    `).join('');
+}
+
+function renderSalesList() {
+    const el = document.getElementById('salesList');
+    if (!el) return;
+    el.innerHTML = salesReps.map(s => `
+        <div style="background:#fdf6ec;color:#e6a23c;padding:6px 12px;border-radius:4px;font-size:14px;border:1px solid #faecd8;">
+            ${esc(s)}
+        </div>
     `).join('');
 }
 
@@ -442,6 +472,19 @@ async function addMember() {
         await apiFetch('/api/team-members', { method: 'POST', body: JSON.stringify({ name }) });
         input.value = '';
         await loadMembers();
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+async function addSales() {
+    const input = document.getElementById('newSalesName');
+    const name = input.value.trim();
+    if (!name) return alert('请输入销售姓名');
+    try {
+        await apiFetch('/api/sales-reps', { method: 'POST', body: JSON.stringify({ name }) });
+        input.value = '';
+        await loadSalesReps();
     } catch (e) {
         alert(e.message);
     }
@@ -550,7 +593,7 @@ function editProject(id) {
     document.getElementById('fStart').value = p.startDate;
     document.getElementById('fEnd').value = p.endDate;
     document.getElementById('fLeader').value = p.leader;
-    document.getElementById('fSales').value = p.salesRep || '';
+    document.getElementById('fSales').value = p.salesRep || ''; // 如果是老数据不存在的CR，会显示空
     document.getElementById('fNotes').value = p.notes || '';
 
     selectedParticipants = [...(p.participants || [])];
@@ -626,7 +669,7 @@ async function deleteProject(id) {
     }
 }
 
-// ── 多选框 ───────────────────────────────────────────
+// ── 多选框 (仅用于团队成员) ──────────────────────────
 
 function initMultiselect() {
     const display = document.getElementById('msDisplay');
@@ -650,6 +693,7 @@ function initMultiselect() {
 function rebuildDropdown() {
     const dropdown = document.getElementById('msDropdown');
     dropdown.innerHTML = '';
+    // 多选框只使用 team_members
     members.forEach(m => {
         const div = document.createElement('div');
         div.className = 'ms-option';
@@ -792,6 +836,7 @@ function checkAvail() {
     if (start > end) return alert('开始日期不能晚于结束日期');
 
     // busy[成员] = [ { name: 项目名, isPM: true/false } ]
+    // 注意：只统计项目成员，不统计销售代表
     const busy = {};
     members.forEach(m => { busy[m] = []; });
 
