@@ -268,6 +268,12 @@
                             <div class="ms-dropdown" id="msDropdown"></div>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label>销售代表 (CR)</label>
+                        <select id="fSales">
+                            <option value="">请选择</option>
+                        </select>
+                    </div>
                     <div class="form-group full">
                         <label>其他备注</label>
                         <textarea id="fNotes" placeholder="输入备注信息..."></textarea>
@@ -405,12 +411,15 @@ async function apiFetch(url, options = {}) {
 async function loadMembers() {
     members = await apiFetch('/api/team-members');
 
-    const sel = document.getElementById('fLeader');
-    sel.innerHTML = '<option value="">请选择</option>';
-    members.forEach(m => {
-        const o = document.createElement('option');
-        o.value = o.textContent = m;
-        sel.appendChild(o);
+    // 填充负责人和CR下拉框（共用同一份成员列表）
+    ['fLeader', 'fSales'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="">请选择</option>';
+        members.forEach(m => {
+            const o = document.createElement('option');
+            o.value = o.textContent = m;
+            sel.appendChild(o);
+        });
     });
 
     renderMembersList();
@@ -494,6 +503,7 @@ function renderList() {
             <td><span class="badge badge-${p.status}">${statusText[p.status]}</span></td>
             <td style="white-space:nowrap;">${p.startDate} ~ ${p.endDate}</td>
             <td>${esc(p.leader)}</td>
+            <td>${esc(p.salesRep || '-')}</td>
             <td>${p.participants && p.participants.length ? p.participants.map(esc).join(', ') : '-'}</td>
             <td>${esc(p.notes || '-')}</td>
             <td style="white-space:nowrap;">${formatDate(p.updatedAt || p.createdAt)}</td>
@@ -514,6 +524,7 @@ function renderList() {
                     <th class="${thClass('status')}" onclick="sortList('status')">状态 ${sortIcon('status')}</th>
                     <th class="${thClass('startDate')}" onclick="sortList('startDate')">时间 ${sortIcon('startDate')}</th>
                     <th class="${thClass('leader')}" onclick="sortList('leader')">负责人 ${sortIcon('leader')}</th>
+                    <th class="${thClass('salesRep')}" onclick="sortList('salesRep')">CR ${sortIcon('salesRep')}</th>
                     <th>参与人</th>
                     <th>备注</th>
                     <th class="${thClass('updatedAt')}" onclick="sortList('updatedAt')">更新日期 ${sortIcon('updatedAt')}</th>
@@ -539,6 +550,7 @@ function editProject(id) {
     document.getElementById('fStart').value = p.startDate;
     document.getElementById('fEnd').value = p.endDate;
     document.getElementById('fLeader').value = p.leader;
+    document.getElementById('fSales').value = p.salesRep || '';
     document.getElementById('fNotes').value = p.notes || '';
 
     selectedParticipants = [...(p.participants || [])];
@@ -582,6 +594,7 @@ document.getElementById('projectForm').addEventListener('submit', async e => {
         startDate: document.getElementById('fStart').value,
         endDate: document.getElementById('fEnd').value,
         leader: document.getElementById('fLeader').value,
+        salesRep: document.getElementById('fSales').value,
         participants: selectedParticipants,
         notes: document.getElementById('fNotes').value
     };
