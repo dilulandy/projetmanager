@@ -21,6 +21,7 @@ app.use((req, res, next) => {
 const db = new sqlite3.Database('./projects.db');
 
 db.serialize(() => {
+    // 1. 项目表
     db.run(`CREATE TABLE IF NOT EXISTS projects (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -37,15 +38,29 @@ db.serialize(() => {
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    // 2. 团队成员表（用于负责人和参与人）
     db.run(`CREATE TABLE IF NOT EXISTS team_members (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT UNIQUE NOT NULL
     )`);
 
-    const defaults = ['Austin Chai','Xi Liu','Keming Zhu','Sophia Wu','Tao Shi'];
-    const stmt = db.prepare('INSERT OR IGNORE INTO team_members (name) VALUES (?)');
-    defaults.forEach(name => stmt.run(name));
-    stmt.finalize();
+    // 3. 【新增】销售代表表（专门用于CR）
+    db.run(`CREATE TABLE IF NOT EXISTS sales_reps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL
+    )`);
+
+    // 初始化默认数据
+    const teamDefaults = ['Austin Chai','Xi Liu','Keming Zhu','Sophia Wu','Tao Shi'];
+    const salesDefaults = ['Angela Zhu', 'May Gao', 'LiangGang Yan','Klaudia Zhang', 'Tara Zhang','Chengqian Li']; // 默认销售
+
+    const stmtTeam = db.prepare('INSERT OR IGNORE INTO team_members (name) VALUES (?)');
+    teamDefaults.forEach(name => stmtTeam.run(name));
+    stmtTeam.finalize();
+
+    const stmtSales = db.prepare('INSERT OR IGNORE INTO sales_reps (name) VALUES (?)');
+    salesDefaults.forEach(name => stmtSales.run(name));
+    stmtSales.finalize();
 
     console.log('数据库初始化完成');
 });
@@ -105,7 +120,7 @@ app.delete('/api/projects/:id', (req, res) => {
     });
 });
 
-// 获取团队成员
+// ── 团队成员 API (原有) ──
 app.get('/api/team-members', (req, res) => {
     db.all('SELECT name FROM team_members ORDER BY id', [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -113,7 +128,6 @@ app.get('/api/team-members', (req, res) => {
     });
 });
 
-// 新增团队成员
 app.post('/api/team-members', (req, res) => {
     const { name } = req.body;
     db.run('INSERT INTO team_members (name) VALUES (?)', [name], function(err) {
@@ -125,7 +139,26 @@ app.post('/api/team-members', (req, res) => {
     });
 });
 
-// ── 静态文件（API路由之后）────────────────────────────
+// ── 【新增】销售代表 API ──
+app.get('/api/sales-reps', (req, res) => {
+    db.all('SELECT name FROM sales_reps ORDER BY id', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows.map(r => r.name));
+    });
+});
+
+app.post('/api/sales-reps', (req, res) => {
+    const { name } = req.body;
+    db.run('INSERT INTO sales_reps (name) VALUES (?)', [name], function(err) {
+        if (err) {
+            if (err.message.includes('UNIQUE')) return res.status(400).json({ error: '该销售已存在' });
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ message: '销售添加成功' });
+    });
+});
+
+// ── 静态文件 ────────────────────────────────────────────
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => {
