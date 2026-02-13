@@ -30,6 +30,7 @@ db.serialize(() => {
         startDate TEXT NOT NULL,
         endDate TEXT NOT NULL,
         leader TEXT NOT NULL,
+        salesRep TEXT DEFAULT '',
         participants TEXT DEFAULT '[]',
         notes TEXT DEFAULT '',
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -68,11 +69,11 @@ app.get('/api/projects', (req, res) => {
 
 // 新增项目
 app.post('/api/projects', (req, res) => {
-    const { name, projectNumber, client, status, startDate, endDate, leader, participants, notes } = req.body;
+    const { name, projectNumber, client, status, startDate, endDate, leader, salesRep, participants, notes } = req.body;
     db.run(
-        `INSERT INTO projects (name, projectNumber, client, status, startDate, endDate, leader, participants, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [name, projectNumber || '', client, status, startDate, endDate, leader,
+        `INSERT INTO projects (name, projectNumber, client, status, startDate, endDate, leader, salesRep, participants, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [name, projectNumber || '', client, status, startDate, endDate, leader, salesRep || '',
          JSON.stringify(participants || []), notes || ''],
         function(err) {
             if (err) return res.status(500).json({ error: err.message });
@@ -83,11 +84,11 @@ app.post('/api/projects', (req, res) => {
 
 // 更新项目
 app.put('/api/projects/:id', (req, res) => {
-    const { name, projectNumber, client, status, startDate, endDate, leader, participants, notes } = req.body;
+    const { name, projectNumber, client, status, startDate, endDate, leader, salesRep, participants, notes } = req.body;
     db.run(
         `UPDATE projects SET name=?, projectNumber=?, client=?, status=?, startDate=?,
-         endDate=?, leader=?, participants=?, notes=?, updatedAt=CURRENT_TIMESTAMP WHERE id=?`,
-        [name, projectNumber || '', client, status, startDate, endDate, leader,
+         endDate=?, leader=?, salesRep=?, participants=?, notes=?, updatedAt=CURRENT_TIMESTAMP WHERE id=?`,
+        [name, projectNumber || '', client, status, startDate, endDate, leader, salesRep || '',
          JSON.stringify(participants || []), notes || '', req.params.id],
         function(err) {
             if (err) return res.status(500).json({ error: err.message });
